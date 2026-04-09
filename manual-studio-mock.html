@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual Studio - モック</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+  /* ===== Screen Management ===== */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ===== Header ===== */
+  .header {
+    background: linear-gradient(135deg, #2d3a8c, #4f5bd5);
+    color: #fff; padding: 14px 28px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .header .logo { font-size: 22px; font-weight: 700; letter-spacing: .5px; cursor: pointer; }
+  .header .logo span { color: #a5b4fc; }
+  .header nav { margin-left: auto; display: flex; gap: 18px; }
+  .header nav a { color: #c7d2fe; text-decoration: none; font-size: 14px; cursor: pointer; }
+  .header nav a:hover { color: #fff; }
+  .header .user-badge {
+    background: rgba(255,255,255,.18); border-radius: 20px; padding: 5px 14px; font-size: 13px;
+  }
+
+  /* ===== Sidebar ===== */
+  .layout { display: flex; flex: 1; }
+  .sidebar {
+    width: 250px; background: #fff; border-right: 1px solid #e2e8f0;
+    padding: 20px 0; flex-shrink: 0;
+  }
+  .sidebar h3 { padding: 0 20px 12px; font-size: 12px; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; }
+  .sidebar ul { list-style: none; }
+  .sidebar li {
+    padding: 10px 20px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;
+    border-left: 3px solid transparent; transition: .15s;
+  }
+  .sidebar li:hover { background: #f1f5f9; }
+  .sidebar li.active { background: #eef2ff; border-left-color: #4f5bd5; color: #4f5bd5; font-weight: 600; }
+  .sidebar .icon { width: 18px; text-align: center; }
+
+  /* ===== Main Content ===== */
+  .main { flex: 1; padding: 28px 36px; overflow-y: auto; }
+
+  /* ===== Cards ===== */
+  .card {
+    background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #e8ecf1;
+  }
+  .card h2 { font-size: 18px; margin-bottom: 16px; color: #1e293b; }
+
+  /* ===== Dashboard ===== */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: #fff; border-radius: 12px; padding: 20px; text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #e8ecf1;
+  }
+  .stat-card .num { font-size: 36px; font-weight: 700; color: #4f5bd5; }
+  .stat-card .label { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+  .project-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .project-item {
+    background: #fff; border-radius: 12px; padding: 20px; cursor: pointer;
+    border: 1px solid #e8ecf1; transition: .2s; position: relative;
+  }
+  .project-item:hover { border-color: #4f5bd5; box-shadow: 0 4px 12px rgba(79,91,213,.12); transform: translateY(-2px); }
+  .project-item h3 { font-size: 16px; margin-bottom: 8px; }
+  .project-item .meta { font-size: 12px; color: #94a3b8; }
+  .project-item .badge {
+    position: absolute; top: 14px; right: 14px; font-size: 11px; padding: 3px 10px;
+    border-radius: 10px; font-weight: 600;
+  }
+  .badge-learning { background: #fef3c7; color: #b45309; }
+  .badge-done { background: #d1fae5; color: #047857; }
+  .badge-draft { background: #e0e7ff; color: #4338ca; }
+
+  /* ===== New Project ===== */
+  .form-group { margin-bottom: 20px; }
+  .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #334155; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;
+    font-size: 14px; font-family: inherit; transition: .15s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: #4f5bd5; box-shadow: 0 0 0 3px rgba(79,91,213,.1);
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+  /* ===== Buttons ===== */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: .15s;
+    font-family: inherit;
+  }
+  .btn-primary { background: #4f5bd5; color: #fff; }
+  .btn-primary:hover { background: #4349b0; }
+  .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #d1d5db; }
+  .btn-secondary:hover { background: #e2e8f0; }
+  .btn-success { background: #059669; color: #fff; }
+  .btn-success:hover { background: #047857; }
+  .btn-lg { padding: 14px 32px; font-size: 16px; }
+  .btn-row { display: flex; gap: 12px; margin-top: 20px; }
+
+  /* ===== Chat (OJT) ===== */
+  .chat-container { display: flex; flex: 1; overflow: hidden; }
+  .chat-main { flex: 1; display: flex; flex-direction: column; }
+  .chat-sidebar {
+    width: 280px; background: #fafbfc; border-left: 1px solid #e2e8f0; padding: 20px;
+    overflow-y: auto;
+  }
+  .chat-sidebar h3 { font-size: 14px; color: #475569; margin-bottom: 12px; }
+  .understanding-bar { background: #e2e8f0; border-radius: 8px; height: 12px; margin-bottom: 16px; overflow: hidden; }
+  .understanding-fill { height: 100%; background: linear-gradient(90deg, #4f5bd5, #22d3ee); border-radius: 8px; transition: width .5s; }
+  .topic-list { list-style: none; }
+  .topic-list li { padding: 8px 12px; font-size: 13px; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .topic-list .learned { background: #d1fae5; color: #047857; }
+  .topic-list .learning { background: #fef3c7; color: #b45309; }
+  .topic-list .not-yet { background: #f1f5f9; color: #94a3b8; }
+
+  .chat-messages { flex: 1; padding: 24px; overflow-y: auto; }
+  .msg { display: flex; gap: 12px; margin-bottom: 20px; max-width: 80%; }
+  .msg.ai { margin-right: auto; }
+  .msg.user { margin-left: auto; flex-direction: row-reverse; }
+  .msg .avatar {
+    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 16px; flex-shrink: 0;
+  }
+  .msg.ai .avatar { background: #eef2ff; }
+  .msg.user .avatar { background: #dbeafe; }
+  .msg .bubble {
+    padding: 12px 16px; border-radius: 14px; font-size: 14px; line-height: 1.6;
+  }
+  .msg.ai .bubble { background: #f8f9fc; border: 1px solid #e8ecf1; border-top-left-radius: 4px; }
+  .msg.user .bubble { background: #4f5bd5; color: #fff; border-top-right-radius: 4px; }
+
+  .chat-input-area {
+    padding: 16px 24px; background: #fff; border-top: 1px solid #e2e8f0;
+    display: flex; gap: 12px; align-items: flex-end;
+  }
+  .chat-input-area textarea {
+    flex: 1; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 12px;
+    font-size: 14px; font-family: inherit; resize: none; min-height: 48px; max-height: 120px;
+  }
+  .chat-input-area textarea:focus { outline: none; border-color: #4f5bd5; }
+  .upload-btn {
+    width: 42px; height: 42px; border-radius: 50%; background: #f1f5f9; border: 1px solid #d1d5db;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .upload-btn:hover { background: #e2e8f0; }
+
+  /* ===== Preview ===== */
+  .preview-container { display: flex; gap: 24px; flex: 1; }
+  .preview-doc {
+    flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 32px 40px; font-size: 14px; line-height: 1.8; overflow-y: auto;
+    max-height: calc(100vh - 200px);
+  }
+  .preview-doc h1 { font-size: 20px; text-align: center; margin-bottom: 8px; border-bottom: 2px solid #1e293b; padding-bottom: 8px; }
+  .preview-doc .doc-meta { text-align: right; font-size: 12px; color: #64748b; margin-bottom: 20px; }
+  .preview-doc h2 { font-size: 16px; background: #eef2ff; padding: 6px 12px; margin: 20px 0 12px; border-left: 4px solid #4f5bd5; }
+  .preview-doc table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  .preview-doc th, .preview-doc td { border: 1px solid #d1d5db; padding: 8px 12px; font-size: 13px; text-align: left; }
+  .preview-doc th { background: #f1f5f9; font-weight: 600; }
+  .preview-doc .step-num { background: #4f5bd5; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .preview-actions { width: 240px; flex-shrink: 0; }
+  .preview-actions .card { position: sticky; top: 0; }
+
+  /* ===== Export ===== */
+  .export-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .export-card {
+    border: 2px solid #e2e8f0; border-radius: 12px; padding: 28px; text-align: center;
+    cursor: pointer; transition: .2s;
+  }
+  .export-card:hover { border-color: #4f5bd5; background: #fafbff; }
+  .export-card.selected { border-color: #4f5bd5; background: #eef2ff; }
+  .export-card .icon { font-size: 40px; margin-bottom: 12px; }
+  .export-card h3 { font-size: 16px; margin-bottom: 6px; }
+  .export-card p { font-size: 13px; color: #64748b; }
+
+  /* ===== Transition Diagram ===== */
+  .diagram-container { padding: 28px 36px; }
+  .diagram-box {
+    display: inline-block; background: #fff; border: 2px solid #4f5bd5; border-radius: 12px;
+    padding: 16px 24px; text-align: center; min-width: 160px; cursor: pointer; transition: .2s;
+  }
+  .diagram-box:hover { background: #eef2ff; transform: scale(1.02); }
+  .diagram-box h4 { font-size: 14px; color: #4f5bd5; }
+  .diagram-box p { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .diagram-arrow { font-size: 24px; color: #4f5bd5; margin: 0 8px; vertical-align: middle; }
+  .diagram-flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 28px 0; }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed; bottom: 30px; right: 30px; background: #1e293b; color: #fff;
+    padding: 14px 24px; border-radius: 10px; font-size: 14px; z-index: 999;
+    box-shadow: 0 4px 16px rgba(0,0,0,.2); display: none; animation: slideUp .3s;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* ===== Screen Transition Diagram Page ===== */
+  .flow-diagram { margin: 20px 0; }
+  .flow-row { display: flex; align-items: center; justify-content: center; margin-bottom: 12px; gap: 12px; }
+  .flow-node {
+    background: #fff; border: 2px solid #4f5bd5; border-radius: 10px; padding: 12px 20px;
+    text-align: center; min-width: 180px; cursor: pointer; transition: .2s;
+  }
+  .flow-node:hover { background: #eef2ff; }
+  .flow-node.highlight { background: #4f5bd5; color: #fff; }
+  .flow-node h4 { font-size: 13px; }
+  .flow-node p { font-size: 11px; opacity: .7; margin-top: 2px; }
+  .flow-arrow-down { font-size: 22px; color: #4f5bd5; }
+  .flow-branch { display: flex; gap: 40px; justify-content: center; }
+</style>
+</head>
+<body>
+
+<!-- ==================== SCREEN 1: ダッシュボード ==================== -->
+<div class="screen active" id="screen-dashboard">
+  <div class="header">
+    <div class="logo" onclick="go('screen-dashboard')">📘 Manual <span>Studio</span></div>
+    <nav>
+      <a onclick="go('screen-dashboard')">ダッシュボード</a>
+      <a onclick="go('screen-transition')">画面遷移図</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <h3>メニュー</h3>
+      <ul>
+        <li class="active"><span class="icon">🏠</span> ダッシュボード</li>
+        <li onclick="go('screen-new')"><span class="icon">➕</span> 新規プロジェクト</li>
+        <li><span class="icon">📂</span> すべての手順書</li>
+        <li><span class="icon">📊</span> テンプレート管理</li>
+        <li><span class="icon">⚙️</span> 設定</li>
+      </ul>
+    </div>
+    <div class="main">
+      <h1 style="font-size:24px; margin-bottom:24px;">ダッシュボード</h1>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="num">12</div>
+          <div class="label">作成済み手順書</div>
+        </div>
+        <div class="stat-card">
+          <div class="num">3</div>
+          <div class="label">学習中プロジェクト</div>
+        </div>
+        <div class="stat-card">
+          <div class="num">5</div>
+          <div class="label">テンプレート数</div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="font-size:18px;">プロジェクト一覧</h2>
+        <button class="btn btn-primary" onclick="go('screen-new')">➕ 新規作成</button>
+      </div>
+      <div class="project-list">
+        <div class="project-item" onclick="go('screen-chat')">
+          <span class="badge badge-learning">🧠 学習中</span>
+          <h3>端末貸出手順書</h3>
+          <p style="font-size:13px; color:#475569; margin:8px 0;">端末の貸出・返却の業務手順をAIに教え込み中</p>
+          <div class="meta">更新: 2026/04/09 ・ 理解度: 65%</div>
+        </div>
+        <div class="project-item" onclick="go('screen-preview')">
+          <span class="badge badge-done">✅ 完了</span>
+          <h3>障害対応フロー</h3>
+          <p style="font-size:13px; color:#475569; margin:8px 0;">本番障害発生時の初動対応からエスカレーションまで</p>
+          <div class="meta">更新: 2026/04/08 ・ 理解度: 100%</div>
+        </div>
+        <div class="project-item" onclick="go('screen-chat')">
+          <span class="badge badge-draft">📝 下書き</span>
+          <h3>リリース作業手順</h3>
+          <p style="font-size:13px; color:#475569; margin:8px 0;">本番リリースの事前準備〜当日作業〜事後確認</p>
+          <div class="meta">更新: 2026/04/07 ・ 理解度: 30%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 2: 新規プロジェクト ==================== -->
+<div class="screen" id="screen-new">
+  <div class="header">
+    <div class="logo" onclick="go('screen-dashboard')">📘 Manual <span>Studio</span></div>
+    <nav>
+      <a onclick="go('screen-dashboard')">ダッシュボード</a>
+      <a onclick="go('screen-transition')">画面遷移図</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <h3>メニュー</h3>
+      <ul>
+        <li onclick="go('screen-dashboard')"><span class="icon">🏠</span> ダッシュボード</li>
+        <li class="active"><span class="icon">➕</span> 新規プロジェクト</li>
+        <li><span class="icon">📂</span> すべての手順書</li>
+        <li><span class="icon">📊</span> テンプレート管理</li>
+        <li><span class="icon">⚙️</span> 設定</li>
+      </ul>
+    </div>
+    <div class="main">
+      <h1 style="font-size:24px; margin-bottom:24px;">新規プロジェクト作成</h1>
+      <div class="card">
+        <h2>基本情報</h2>
+        <div class="form-group">
+          <label>プロジェクト名</label>
+          <input type="text" placeholder="例: 端末貸出手順書" value="端末貸出手順書">
+        </div>
+        <div class="form-group">
+          <label>対象業務の説明</label>
+          <textarea placeholder="どのような業務の手順書を作成したいですか？">端末の貸出・返却に関する業務手順。チームごとにルールが異なっており、統一した手順書を作成したい。</textarea>
+          <div class="hint">💡 後輩AIがこの説明をもとに質問を開始します</div>
+        </div>
+        <div class="form-group">
+          <label>テンプレート</label>
+          <select>
+            <option>📋 標準業務手順書テンプレート</option>
+            <option>🔧 システム操作手順書テンプレート</option>
+            <option>🚨 障害対応手順書テンプレート</option>
+            <option>📝 カスタム（空のテンプレート）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>参考資料のアップロード（任意）</label>
+          <div style="border:2px dashed #d1d5db; border-radius:8px; padding:30px; text-align:center; color:#94a3b8; cursor:pointer;">
+            📎 ここにファイルをドロップ、またはクリックして選択<br>
+            <span style="font-size:12px;">Excel, Word, PDF, テキストファイルに対応</span>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="go('screen-dashboard')">← 戻る</button>
+        <button class="btn btn-primary btn-lg" onclick="go('screen-chat'); showToast('プロジェクトを作成しました。後輩AIとの対話を開始します！')">🧠 後輩AIとの対話を開始 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 3: OJT対話 (メイン画面) ==================== -->
+<div class="screen" id="screen-chat">
+  <div class="header">
+    <div class="logo" onclick="go('screen-dashboard')">📘 Manual <span>Studio</span></div>
+    <nav>
+      <a onclick="go('screen-dashboard')">ダッシュボード</a>
+      <a onclick="go('screen-preview')">プレビュー</a>
+      <a onclick="go('screen-transition')">画面遷移図</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="chat-container">
+    <!-- Chat Messages -->
+    <div class="chat-main">
+      <div style="padding:12px 24px; background:#fffbeb; border-bottom:1px solid #fde68a; font-size:13px; color:#92400e;">
+        💡 <strong>OJTモード:</strong> 後輩AIに業務を教えるように話しかけてください。AIが質問を通じて業務を理解していきます。
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg ai">
+          <div class="avatar">🤖</div>
+          <div class="bubble">
+            はじめまして！新しく配属された後輩AIです。<br>
+            <strong>「端末貸出手順書」</strong>の業務について教えていただけますか？<br><br>
+            まず基本的なことから教えてください。<strong>端末の貸出はどのような場面で発生しますか？</strong>
+          </div>
+        </div>
+        <div class="msg user">
+          <div class="avatar">👤</div>
+          <div class="bubble">
+            テストや検証のために開発端末を使いたい時に、端末管理台帳に記入して管理者から端末を借りるんだよ。チームによって微妙にルールが違うから困るんだけどね。
+          </div>
+        </div>
+        <div class="msg ai">
+          <div class="avatar">🤖</div>
+          <div class="bubble">
+            なるほど！テストや検証で端末を借りるんですね。<br><br>
+            いくつか確認させてください：<br>
+            1️⃣ <strong>端末管理台帳</strong>は紙ですか？Excelですか？<br>
+            2️⃣ 管理者というのは<strong>チームごとに違う</strong>方ですか？<br>
+            3️⃣ 「チームによってルールが違う」とのことですが、具体的にどのあたりが違いますか？
+          </div>
+        </div>
+        <div class="msg user">
+          <div class="avatar">👤</div>
+          <div class="bubble">
+            台帳はExcelだよ。共有フォルダに置いてある。管理者はチームリーダーが兼任してて、Aチームは貸出票に手書きで書くけど、Bチームは口頭でOKなんだ。返却もAチームはリーダー確認が必須だけど、Bチームはそのまま棚に戻していいルール。
+          </div>
+        </div>
+        <div class="msg ai">
+          <div class="avatar">🤖</div>
+          <div class="bubble">
+            理解が深まってきました！整理させてください 📝<br><br>
+            <strong>【現状の理解】</strong><br>
+            ・台帳: Excel（共有フォルダ）<br>
+            ・管理者: チームリーダー兼任<br>
+            ・貸出方法: A=貸出票(手書き) / B=口頭<br>
+            ・返却方法: A=リーダー確認必須 / B=直接返却OK<br><br>
+            この理解で合っていますか？<br>
+            次に、<strong>統一ルールとして「こうあるべき」という理想の流れ</strong>があれば教えてください！
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <div class="upload-btn" title="参考資料をアップロード">📎</div>
+        <textarea placeholder="後輩AIに業務を教えてください..." rows="1" id="chatInput" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+        <button class="btn btn-primary" onclick="sendMsg()">送信</button>
+        <button class="btn btn-success" onclick="go('screen-preview'); showToast('後輩AIの理解をもとに手順書を生成しました！')">📄 手順書を生成</button>
+      </div>
+    </div>
+    <!-- Right Sidebar: AI Understanding -->
+    <div class="chat-sidebar">
+      <h3>🧠 後輩AIの理解度</h3>
+      <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+        <span>全体理解度</span><span style="font-weight:700; color:#4f5bd5;">65%</span>
+      </div>
+      <div class="understanding-bar"><div class="understanding-fill" style="width:65%"></div></div>
+
+      <h3 style="margin-top:20px;">📚 学習済みトピック</h3>
+      <ul class="topic-list">
+        <li class="learned">✅ 業務の概要・目的</li>
+        <li class="learned">✅ 貸出の発生タイミング</li>
+        <li class="learned">✅ 管理台帳の形式</li>
+        <li class="learned">✅ チーム別ルールの現状</li>
+        <li class="learning">🔄 統一ルール（理想の流れ）</li>
+        <li class="not-yet">⬜ 端末の種類・台数</li>
+        <li class="not-yet">⬜ トラブル時の対応</li>
+        <li class="not-yet">⬜ 返却期限・延長ルール</li>
+        <li class="not-yet">⬜ 緊急時の貸出フロー</li>
+      </ul>
+
+      <h3 style="margin-top:20px;">📎 参考資料</h3>
+      <div style="font-size:13px; padding:8px; background:#f1f5f9; border-radius:6px; margin-bottom:6px;">📄 端末管理台帳.xlsx</div>
+      <div style="font-size:13px; padding:8px; background:#f1f5f9; border-radius:6px;">📄 Aチーム貸出票.pdf</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 4: 手順書プレビュー ==================== -->
+<div class="screen" id="screen-preview">
+  <div class="header">
+    <div class="logo" onclick="go('screen-dashboard')">📘 Manual <span>Studio</span></div>
+    <nav>
+      <a onclick="go('screen-dashboard')">ダッシュボード</a>
+      <a onclick="go('screen-chat')">OJT対話に戻る</a>
+      <a onclick="go('screen-transition')">画面遷移図</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="layout" style="padding:24px 36px; gap:24px;">
+    <div class="preview-doc">
+      <h1>端末貸出・返却手順書</h1>
+      <div class="doc-meta">
+        文書番号: MNL-2026-004　|　作成日: 2026/04/09　|　作成者: Manual Studio (AI生成)<br>
+        版数: 1.0　|　承認: ―
+      </div>
+
+      <h2>1. 目的</h2>
+      <p>本手順書は、テスト・検証業務における端末貸出・返却の手順を統一し、チーム間のルール差異を解消することを目的とする。</p>
+
+      <h2>2. 適用範囲</h2>
+      <p>本手順書は、Aチーム・Bチームを含む全開発チームの端末貸出業務に適用する。</p>
+
+      <h2>3. 用語定義</h2>
+      <table>
+        <tr><th>用語</th><th>定義</th></tr>
+        <tr><td>端末管理台帳</td><td>共有フォルダ上のExcelファイル。貸出・返却の記録を管理する。</td></tr>
+        <tr><td>管理者</td><td>各チームのリーダーが兼任。貸出承認と返却確認を行う。</td></tr>
+        <tr><td>貸出票</td><td>端末貸出時に記入する申請書。</td></tr>
+      </table>
+
+      <h2>4. 貸出手順</h2>
+      <table>
+        <tr><th style="width:50px">No.</th><th>作業内容</th><th>担当者</th><th>補足</th></tr>
+        <tr><td><span class="step-num">1</span></td><td>端末管理台帳（Excel）で空き端末を確認</td><td>利用者</td><td>共有フォルダ: \\server\share\端末管理\</td></tr>
+        <tr><td><span class="step-num">2</span></td><td>チームリーダー（管理者）に貸出を申請</td><td>利用者</td><td>口頭 or チャットで連絡</td></tr>
+        <tr><td><span class="step-num">3</span></td><td>貸出票に必要事項を記入</td><td>利用者</td><td>氏名・日付・端末番号・利用目的・返却予定日</td></tr>
+        <tr><td><span class="step-num">4</span></td><td>管理者が貸出を承認</td><td>管理者</td><td>台帳に「貸出中」を記録</td></tr>
+        <tr><td><span class="step-num">5</span></td><td>端末を受け取り、利用開始</td><td>利用者</td><td>—</td></tr>
+      </table>
+
+      <h2>5. 返却手順</h2>
+      <table>
+        <tr><th style="width:50px">No.</th><th>作業内容</th><th>担当者</th><th>補足</th></tr>
+        <tr><td><span class="step-num">1</span></td><td>端末の初期化・データ消去を実施</td><td>利用者</td><td>個人データが残らないよう確認</td></tr>
+        <tr><td><span class="step-num">2</span></td><td>管理者に返却を報告</td><td>利用者</td><td>対面で端末の状態を確認</td></tr>
+        <tr><td><span class="step-num">3</span></td><td>管理者が端末の状態を確認</td><td>管理者</td><td>破損等がないか目視チェック</td></tr>
+        <tr><td><span class="step-num">4</span></td><td>台帳を更新（「返却済み」に変更）</td><td>管理者</td><td>返却日時を記録</td></tr>
+        <tr><td><span class="step-num">5</span></td><td>端末を所定の場所に格納</td><td>管理者</td><td>充電ケーブルを接続</td></tr>
+      </table>
+
+      <h2>6. 注意事項</h2>
+      <ul style="padding-left:20px; margin:8px 0;">
+        <li>返却予定日を超過する場合は、事前に管理者へ延長申請を行うこと</li>
+        <li>端末の故障・紛失が発生した場合は、直ちに管理者に報告すること</li>
+        <li>テストデータに個人情報を使用しないこと</li>
+      </ul>
+
+      <h2>7. 改訂履歴</h2>
+      <table>
+        <tr><th>版数</th><th>日付</th><th>改訂内容</th><th>作成者</th></tr>
+        <tr><td>1.0</td><td>2026/04/09</td><td>新規作成（Manual Studioにより自動生成）</td><td>上村 光陽</td></tr>
+      </table>
+    </div>
+
+    <div class="preview-actions">
+      <div class="card">
+        <h2>操作</h2>
+        <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" onclick="go('screen-export')">📤 エクスポート</button>
+        <button class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="go('screen-chat')">🧠 AIに追加で教える</button>
+        <button class="btn btn-secondary" style="width:100%; margin-bottom:10px;">✏️ 手動で編集</button>
+        <button class="btn btn-secondary" style="width:100%;">🔄 再生成</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2>生成情報</h2>
+        <div style="font-size:13px; line-height:2;">
+          <div>📊 テンプレート: 標準業務手順書</div>
+          <div>🧠 AI理解度: 65%</div>
+          <div>💬 対話ターン数: 8</div>
+          <div>📎 参考資料: 2件</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px; background:#fffbeb; border-color:#fde68a;">
+        <h2 style="color:#92400e;">⚠️ 未確認の項目</h2>
+        <ul style="font-size:13px; padding-left:16px; color:#92400e; line-height:1.8;">
+          <li>端末の種類・台数</li>
+          <li>トラブル時の対応</li>
+          <li>返却期限・延長ルール</li>
+          <li>緊急時の貸出フロー</li>
+        </ul>
+        <button class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="go('screen-chat')">OJTを続ける →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 5: エクスポート ==================== -->
+<div class="screen" id="screen-export">
+  <div class="header">
+    <div class="logo" onclick="go('screen-dashboard')">📘 Manual <span>Studio</span></div>
+    <nav>
+      <a onclick="go('screen-dashboard')">ダッシュボード</a>
+      <a onclick="go('screen-preview')">← プレビューに戻る</a>
+      <a onclick="go('screen-transition')">画面遷移図</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <h3>メニュー</h3>
+      <ul>
+        <li onclick="go('screen-dashboard')"><span class="icon">🏠</span> ダッシュボード</li>
+        <li><span class="icon">➕</span> 新規プロジェクト</li>
+        <li><span class="icon">📂</span> すべての手順書</li>
+        <li><span class="icon">📊</span> テンプレート管理</li>
+        <li><span class="icon">⚙️</span> 設定</li>
+      </ul>
+    </div>
+    <div class="main">
+      <h1 style="font-size:24px; margin-bottom:8px;">エクスポート</h1>
+      <p style="color:#64748b; margin-bottom:24px;">「端末貸出・返却手順書」を出力します。形式を選択してください。</p>
+
+      <div class="export-options" id="exportOptions">
+        <div class="export-card selected" onclick="selectExport(this)">
+          <div class="icon">📊</div>
+          <h3>テキストファイル (.txt)</h3>
+          <p>シンプルなテキスト形式。<br>すぐに共有・編集可能</p>
+        </div>
+        <div class="export-card" onclick="selectExport(this)">
+          <div class="icon">📗</div>
+          <h3>Excel (.xlsx)</h3>
+          <p>表形式でステップを管理。<br>既存台帳との統合に最適</p>
+        </div>
+        <div class="export-card" onclick="selectExport(this)">
+          <div class="icon">📘</div>
+          <h3>Word (.docx)</h3>
+          <p>正式な文書形式。<br>承認フロー用に最適</p>
+        </div>
+        <div class="export-card" onclick="selectExport(this)">
+          <div class="icon">📕</div>
+          <h3>PDF</h3>
+          <p>閲覧専用の確定版。<br>配布・印刷用に最適</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <h2>出力オプション</h2>
+        <div class="form-group">
+          <label>ファイル名</label>
+          <input type="text" value="端末貸出・返却手順書_v1.0">
+        </div>
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" checked> ヘッダー（文書番号・作成日等）を含める
+          </label>
+        </div>
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" checked> 改訂履歴を含める
+          </label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="go('screen-preview')">← プレビューに戻る</button>
+        <button class="btn btn-primary btn-lg" onclick="doExport()">📤 エクスポート実行</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 6: 画面遷移図 ==================== -->
+<div class="screen" id="screen-transition">
+  <div class="header">
+    <div class="logo" onclick="go('screen-dashboard')">📘 Manual <span>Studio</span></div>
+    <nav>
+      <a onclick="go('screen-dashboard')">ダッシュボード</a>
+      <a onclick="go('screen-transition')" style="color:#fff; font-weight:600;">画面遷移図</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <h3>画面一覧</h3>
+      <ul>
+        <li onclick="go('screen-dashboard')"><span class="icon">1️⃣</span> ダッシュボード</li>
+        <li onclick="go('screen-new')"><span class="icon">2️⃣</span> 新規プロジェクト</li>
+        <li onclick="go('screen-chat')"><span class="icon">3️⃣</span> OJT対話</li>
+        <li onclick="go('screen-preview')"><span class="icon">4️⃣</span> 手順書プレビュー</li>
+        <li onclick="go('screen-export')"><span class="icon">5️⃣</span> エクスポート</li>
+      </ul>
+    </div>
+    <div class="main">
+      <h1 style="font-size:24px; margin-bottom:8px;">画面遷移図</h1>
+      <p style="color:#64748b; margin-bottom:28px;">Manual Studio の画面フローです。各ボックスをクリックすると該当画面に遷移します。</p>
+
+      <!-- Flow Diagram -->
+      <div class="flow-diagram">
+        <!-- Row 1: Dashboard -->
+        <div class="flow-row">
+          <div class="flow-node highlight" onclick="go('screen-dashboard')">
+            <h4>🏠 ダッシュボード</h4>
+            <p>プロジェクト一覧・統計</p>
+          </div>
+        </div>
+        <div class="flow-row"><div class="flow-arrow-down">⬇️</div></div>
+
+        <!-- Row 2: Branch -->
+        <div class="flow-row">
+          <div style="display:flex; gap:60px;">
+            <div style="text-align:center;">
+              <div class="flow-node" onclick="go('screen-new')">
+                <h4>➕ 新規プロジェクト作成</h4>
+                <p>業務説明・テンプレート選択・資料UP</p>
+              </div>
+              <div class="flow-arrow-down" style="margin:8px 0;">⬇️</div>
+            </div>
+            <div style="text-align:center;">
+              <div class="flow-node" style="border-color:#94a3b8;">
+                <h4>📂 既存プロジェクト選択</h4>
+                <p>一覧からプロジェクトを選択</p>
+              </div>
+              <div class="flow-arrow-down" style="margin:8px 0;">⬇️</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: Chat -->
+        <div class="flow-row">
+          <div class="flow-node" onclick="go('screen-chat')" style="border-width:3px; min-width:320px;">
+            <h4>🧠 OJT対話画面（メイン）</h4>
+            <p>後輩AIとの対話で業務知識をインプット<br>理解度メーター・学習済みトピック表示<br>参考資料アップロード</p>
+          </div>
+        </div>
+        <div class="flow-row"><div class="flow-arrow-down">⬇️</div></div>
+
+        <!-- Row 4: Preview -->
+        <div class="flow-row">
+          <div class="flow-node" onclick="go('screen-preview')" style="min-width:280px;">
+            <h4>📄 手順書プレビュー</h4>
+            <p>AI生成の手順書をプレビュー<br>手動編集・再生成・追加OJT</p>
+          </div>
+        </div>
+        <div class="flow-row"><div class="flow-arrow-down">⬇️</div></div>
+
+        <!-- Row 5: Export -->
+        <div class="flow-row">
+          <div class="flow-node" onclick="go('screen-export')">
+            <h4>📤 エクスポート</h4>
+            <p>TXT / Excel / Word / PDF 出力</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="card" style="margin-top:32px;">
+        <h2>ユーザーフロー概要</h2>
+        <div style="font-size:14px; line-height:2;">
+          <strong>Step 1.</strong> ダッシュボードから新規プロジェクトを作成、または既存プロジェクトを選択<br>
+          <strong>Step 2.</strong> 業務の概要を入力し、テンプレートを選択（参考資料のアップロードも可能）<br>
+          <strong>Step 3.</strong> <span style="color:#4f5bd5; font-weight:600;">後輩AIとのOJT対話</span>で業務知識を教え込む（メインの操作）<br>
+          <strong>Step 4.</strong> AIの理解度が十分になったら「手順書を生成」ボタンで自動生成<br>
+          <strong>Step 5.</strong> プレビューで内容を確認、必要に応じて追加対話や手動編集<br>
+          <strong>Step 6.</strong> 任意の形式でエクスポート（テキスト / Excel / Word / PDF）<br>
+        </div>
+      </div>
+
+      <!-- Cycle note -->
+      <div class="card" style="background:#eef2ff; border-color:#c7d2fe;">
+        <h2 style="color:#4338ca;">🔄 反復サイクル</h2>
+        <p style="font-size:14px; line-height:1.8; color:#4338ca;">
+          OJT対話 ↔ プレビュー は何度でも行き来できます。<br>
+          プレビューで不足を発見 → OJT対話に戻って追加情報を教える → 再生成、というサイクルで手順書の品質を高めていきます。
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ===== Screen Navigation =====
+  function go(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+  }
+
+  // ===== Toast =====
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+  }
+
+  // ===== Chat Demo =====
+  const demoResponses = [
+    "なるほど、詳しくありがとうございます！\n\nもう少し教えてください。返却期限は何日間ですか？また、延長したい場合はどうすればいいですか？",
+    "理解しました！📝\n\nでは、もし端末が故障した場合や紛失した場合はどう対応しますか？そのあたりのルールも手順書に入れた方がよさそうですね。",
+    "とても勉強になります！だいぶ業務の全体像がつかめてきました。\n\n理解度が上がってきたので、そろそろ手順書の生成ができそうです。\n「手順書を生成」ボタンから確認してみてください！",
+  ];
+  let demoIdx = 0;
+
+  function sendMsg() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const msgs = document.getElementById('chatMessages');
+    // User message
+    msgs.innerHTML += `<div class="msg user"><div class="avatar">👤</div><div class="bubble">${text.replace(/</g,'&lt;')}</div></div>`;
+    input.value = '';
+
+    // AI response (simulated)
+    setTimeout(() => {
+      const resp = demoResponses[demoIdx % demoResponses.length];
+      demoIdx++;
+      msgs.innerHTML += `<div class="msg ai"><div class="avatar">🤖</div><div class="bubble">${resp.replace(/\n/g,'<br>')}</div></div>`;
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 800);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  // ===== Export =====
+  function selectExport(el) {
+    document.querySelectorAll('.export-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function doExport() {
+    // Generate a sample text file
+    const content = `============================================================
+端末貸出・返却手順書
+============================================================
+文書番号: MNL-2026-004
+作成日:   2026/04/09
+作成者:   Manual Studio (AI生成)
+版数:     1.0
+
+------------------------------------------------------------
+1. 目的
+------------------------------------------------------------
+本手順書は、テスト・検証業務における端末貸出・返却の
+手順を統一し、チーム間のルール差異を解消することを
+目的とする。
+
+------------------------------------------------------------
+2. 適用範囲
+------------------------------------------------------------
+Aチーム・Bチームを含む全開発チームの端末貸出業務に
+適用する。
+
+------------------------------------------------------------
+3. 用語定義
+------------------------------------------------------------
+- 端末管理台帳: 共有フォルダ上のExcelファイル
+- 管理者:       各チームリーダーが兼任
+- 貸出票:       端末貸出時に記入する申請書
+
+------------------------------------------------------------
+4. 貸出手順
+------------------------------------------------------------
+Step 1: 端末管理台帳（Excel）で空き端末を確認
+        担当: 利用者
+        補足: 共有フォルダ \\\\server\\share\\端末管理\\
+
+Step 2: チームリーダー（管理者）に貸出を申請
+        担当: 利用者
+        補足: 口頭 or チャットで連絡
+
+Step 3: 貸出票に必要事項を記入
+        担当: 利用者
+        補足: 氏名・日付・端末番号・利用目的・返却予定日
+
+Step 4: 管理者が貸出を承認
+        担当: 管理者
+        補足: 台帳に「貸出中」を記録
+
+Step 5: 端末を受け取り、利用開始
+        担当: 利用者
+
+------------------------------------------------------------
+5. 返却手順
+------------------------------------------------------------
+Step 1: 端末の初期化・データ消去を実施
+        担当: 利用者
+        補足: 個人データが残らないよう確認
+
+Step 2: 管理者に返却を報告
+        担当: 利用者
+        補足: 対面で端末の状態を確認
+
+Step 3: 管理者が端末の状態を確認
+        担当: 管理者
+        補足: 破損等がないか目視チェック
+
+Step 4: 台帳を更新（「返却済み」に変更）
+        担当: 管理者
+        補足: 返却日時を記録
+
+Step 5: 端末を所定の場所に格納
+        担当: 管理者
+        補足: 充電ケーブルを接続
+
+------------------------------------------------------------
+6. 注意事項
+------------------------------------------------------------
+- 返却予定日を超過する場合は事前に管理者へ延長申請
+- 端末の故障・紛失は直ちに管理者に報告
+- テストデータに個人情報を使用しないこと
+
+------------------------------------------------------------
+7. 改訂履歴
+------------------------------------------------------------
+版数  日付        改訂内容                 作成者
+1.0   2026/04/09  新規作成(AI自動生成)     上村 光陽
+
+============================================================
+※ この手順書は Manual Studio により自動生成されました
+============================================================`;
+
+    const blob = new Blob([content], { type: 'text/plain; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '端末貸出・返却手順書_v1.0.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ テキストファイルをダウンロードしました！');
+  }
+</script>
+</body>
+</html>
