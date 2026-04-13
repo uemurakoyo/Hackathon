@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual Studio</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI','Yu Gothic UI','Meiryo',sans-serif;background:#f7f7f8;color:#1a1a1a;}
+
+  :root{
+    --accent:#6C63FF;
+    --accent-light:#EEEDFF;
+    --accent-dark:#4F46E5;
+    --bg:#f7f7f8;
+    --surface:#fff;
+    --border:#e5e5e5;
+    --text:#1a1a1a;
+    --text2:#6b7280;
+    --text3:#9ca3af;
+    --success:#10b981;
+    --warn:#f59e0b;
+    --radius:14px;
+  }
+
+  .screen{display:none;min-height:100vh;flex-direction:column;}
+  .screen.active{display:flex;}
+
+  /* ===== Minimal Header ===== */
+  .header{
+    background:var(--surface);border-bottom:1px solid var(--border);
+    height:52px;padding:0 24px;display:flex;align-items:center;gap:16px;
+    position:sticky;top:0;z-index:100;
+  }
+  .logo{font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text);}
+  .logo .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);}
+  .header nav{margin-left:auto;display:flex;gap:2px;}
+  .header nav a{
+    color:var(--text2);text-decoration:none;font-size:13px;cursor:pointer;
+    padding:6px 14px;border-radius:8px;transition:.15s;font-weight:500;
+  }
+  .header nav a:hover{background:var(--bg);color:var(--text);}
+  .header nav a.active{background:var(--accent-light);color:var(--accent);}
+  .user-badge{font-size:12px;color:var(--text2);font-weight:500;}
+
+  /* ===== Home / Chat-first screen ===== */
+  .home-center{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:40px 24px 24px;max-width:800px;
+    margin:0 auto;width:100%;
+  }
+  .home-greeting{text-align:center;margin-bottom:32px;}
+  .home-greeting .ai-face{
+    width:72px;height:72px;margin:0 auto 16px;position:relative;
+  }
+  .home-greeting .ai-face svg{width:72px;height:72px;filter:drop-shadow(0 4px 12px rgba(108,99,255,.25));}
+  .home-greeting h1{font-size:26px;font-weight:700;color:var(--text);margin-bottom:8px;}
+  .home-greeting p{font-size:15px;color:var(--text2);line-height:1.6;}
+
+  /* Main Input */
+  .home-input-wrap{
+    width:100%;background:var(--surface);border:1.5px solid var(--border);
+    border-radius:16px;padding:16px;margin-bottom:24px;transition:.2s;
+    box-shadow:0 1px 6px rgba(0,0,0,.04);
+  }
+  .home-input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.1);}
+  .home-input-wrap textarea{
+    width:100%;border:none;outline:none;resize:none;font-size:15px;
+    font-family:inherit;color:var(--text);min-height:48px;background:transparent;
+    line-height:1.5;
+  }
+  .home-input-wrap textarea::placeholder{color:var(--text3);}
+  .home-input-actions{display:flex;align-items:center;gap:8px;margin-top:8px;}
+  .home-input-actions .spacer{flex:1;}
+  .input-icon-btn{
+    width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);cursor:pointer;font-size:16px;
+    display:flex;align-items:center;justify-content:center;transition:.12s;color:var(--text2);
+  }
+  .input-icon-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+  .send-btn{
+    padding:8px 20px;border:none;border-radius:10px;font-size:13px;font-weight:600;
+    cursor:pointer;transition:.15s;font-family:inherit;
+    background:var(--accent);color:#fff;
+  }
+  .send-btn:hover{background:var(--accent-dark);}
+  .send-btn:disabled{background:var(--border);color:var(--text3);cursor:default;}
+
+  /* Mode Chips */
+  .mode-chips{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;justify-content:center;}
+  .mode-chip{
+    display:flex;align-items:center;gap:8px;
+    padding:12px 20px;border-radius:12px;border:1.5px solid var(--border);
+    background:var(--surface);cursor:pointer;transition:.15s;font-size:13px;
+    font-weight:600;color:var(--text);
+  }
+  .mode-chip:hover{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+  .mode-chip.selected{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+  .mode-chip .chip-icon{font-size:18px;}
+  .mode-chip .chip-desc{font-size:11px;color:var(--text2);font-weight:400;margin-top:1px;}
+
+  /* Suggestion Chips */
+  .suggestions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:32px;}
+  .sug-chip{
+    padding:8px 16px;border-radius:20px;border:1px solid var(--border);
+    background:var(--surface);cursor:pointer;transition:.12s;
+    font-size:12px;color:var(--text2);font-weight:500;
+  }
+  .sug-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+
+  /* Recent Projects */
+  .recent-section{width:100%;margin-top:auto;padding-top:24px;border-top:1px solid var(--border);}
+  .recent-label{font-size:12px;color:var(--text3);font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
+  .recent-list{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;}
+  .recent-card{
+    flex-shrink:0;width:220px;padding:14px 16px;border-radius:12px;
+    border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;
+  }
+  .recent-card:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(108,99,255,.08);}
+  .recent-card h4{font-size:13px;font-weight:600;margin-bottom:4px;}
+  .recent-card p{font-size:11px;color:var(--text3);line-height:1.4;}
+  .recent-card .rc-meta{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;}
+  .rc-badge{padding:2px 8px;border-radius:6px;font-weight:600;font-size:10px;}
+  .rc-badge.learning{background:#FEF3C7;color:#B45309;}
+  .rc-badge.done{background:#D1FAE5;color:#047857;}
+  .rc-badge.draft{background:#E0E7FF;color:#4338CA;}
+
+  /* ===== Chat Screen ===== */
+  .chat-layout{flex:1;display:flex;overflow:hidden;}
+  .chat-main{flex:1;display:flex;flex-direction:column;}
+  .chat-messages{flex:1;padding:24px;overflow-y:auto;max-width:800px;margin:0 auto;width:100%;}
+  .msg{display:flex;gap:12px;margin-bottom:20px;}
+  .msg.user{flex-direction:row-reverse;}
+  .msg .avatar{
+    width:32px;height:32px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:14px;
+  }
+  .msg.ai .avatar{background:none;padding:0;overflow:visible;width:36px;height:36px;}
+  .msg.ai .avatar svg{width:36px;height:36px;filter:drop-shadow(0 2px 6px rgba(108,99,255,.2));}
+  .msg.user .avatar{background:var(--border);color:var(--text2);}
+  .msg .bubble{padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.7;max-width:600px;}
+  .msg.ai .bubble{background:var(--surface);border:1px solid var(--border);border-top-left-radius:4px;}
+  .msg.user .bubble{background:var(--accent);color:#fff;border-top-right-radius:4px;}
+
+  /* Chat input bottom */
+  .chat-input-bar{
+    padding:12px 24px 20px;display:flex;justify-content:center;
+  }
+  .chat-input-inner{
+    width:100%;max-width:800px;background:var(--surface);
+    border:1.5px solid var(--border);border-radius:16px;padding:12px 16px;
+    transition:.2s;box-shadow:0 1px 6px rgba(0,0,0,.04);
+  }
+  .chat-input-inner:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.1);}
+  .chat-input-inner textarea{
+    width:100%;border:none;outline:none;resize:none;font-size:14px;
+    font-family:inherit;color:var(--text);min-height:40px;background:transparent;
+  }
+  .chat-input-inner textarea::placeholder{color:var(--text3);}
+  .chat-input-bottom{display:flex;align-items:center;gap:8px;margin-top:6px;}
+  .chat-input-bottom .spacer{flex:1;}
+
+  .chat-mode-btn{
+    padding:5px 14px;border:none;border-radius:6px;font-size:12px;
+    font-weight:600;cursor:pointer;transition:.12s;
+    background:transparent;color:var(--text3);font-family:inherit;
+  }
+  .chat-mode-btn:hover{color:var(--text);}
+  .chat-mode-btn.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+  /* Chat right panel */
+  .chat-panel{
+    width:280px;background:var(--surface);border-left:1px solid var(--border);
+    padding:20px;overflow-y:auto;
+  }
+  .chat-panel h3{font-size:11px;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+  .panel-progress-bar{height:6px;background:var(--bg);border-radius:3px;margin-bottom:4px;overflow:hidden;}
+  .panel-progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .5s;}
+  .panel-progress-text{font-size:12px;color:var(--text2);font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;}
+
+  .check-list{list-style:none;}
+  .check-list li{padding:6px 0;font-size:12px;display:flex;align-items:center;gap:8px;color:var(--text2);font-weight:500;}
+  .ck{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+  .ck-done{background:#D1FAE5;color:#047857;}
+  .ck-partial{background:#FEF3C7;color:#B45309;}
+  .ck-no{background:var(--bg);color:var(--text3);border:1px solid var(--border);}
+
+  .skel-preview{background:var(--bg);border-radius:8px;padding:12px;margin-top:8px;}
+  .skel-row{height:6px;background:var(--border);border-radius:3px;margin-bottom:5px;}
+  .skel-row.filled{background:linear-gradient(90deg,var(--accent),#a78bfa);opacity:.4;}
+  .skel-row.short{width:60%;}
+  .skel-row.med{width:80%;}
+  .skel-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:3px;margin-top:8px;}
+
+  /* Autosave */
+  .autosave{
+    padding:6px 24px;background:#F0FDF4;border-bottom:1px solid #BBF7D0;
+    font-size:11px;color:#16A34A;font-weight:600;display:flex;align-items:center;gap:4px;
+  }
+
+  /* Voice mode */
+  .voice-overlay{
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    padding:48px 24px;gap:20px;background:var(--bg);border-top:1px solid var(--border);
+  }
+  .voice-overlay.active{display:flex;}
+  .voice-vis{display:flex;align-items:center;gap:4px;height:56px;}
+  .vbar{width:5px;border-radius:3px;background:var(--accent);animation:vw .7s ease-in-out infinite;}
+  .vbar:nth-child(1){height:16px;animation-delay:0s;}
+  .vbar:nth-child(2){height:28px;animation-delay:.08s;}
+  .vbar:nth-child(3){height:40px;animation-delay:.16s;}
+  .vbar:nth-child(4){height:32px;animation-delay:.24s;}
+  .vbar:nth-child(5){height:44px;animation-delay:.12s;}
+  .vbar:nth-child(6){height:24px;animation-delay:.2s;}
+  .vbar:nth-child(7){height:36px;animation-delay:.04s;}
+  @keyframes vw{0%,100%{transform:scaleY(.3);}50%{transform:scaleY(1);}}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+  .voice-stop{
+    width:56px;height:56px;border-radius:50%;border:2px solid var(--accent);
+    background:var(--surface);color:var(--accent);font-size:20px;cursor:pointer;transition:.15s;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .voice-stop:hover{background:var(--accent);color:#fff;}
+
+  /* ===== Quick Mode screen ===== */
+  .quick-center{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    padding:48px 24px;max-width:720px;margin:0 auto;width:100%;
+  }
+  .quick-center h1{font-size:22px;font-weight:700;margin-bottom:8px;}
+  .quick-center>p{font-size:14px;color:var(--text2);margin-bottom:28px;}
+  .quick-form{width:100%;}
+  .quick-form .form-group{margin-bottom:16px;}
+  .quick-form label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+  .quick-form input,.quick-form textarea,.quick-form select{
+    width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;
+    font-size:14px;font-family:inherit;color:var(--text);background:var(--surface);transition:.15s;
+  }
+  .quick-form input:focus,.quick-form textarea:focus,.quick-form select:focus{
+    outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.1);
+  }
+  .quick-form textarea{resize:vertical;min-height:100px;}
+
+  /* ===== Preview ===== */
+  .preview-wrap{flex:1;display:flex;gap:24px;padding:24px 32px;overflow:hidden;}
+  .preview-doc{
+    flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:40px 48px;font-size:14px;line-height:1.8;overflow-y:auto;color:var(--text);
+  }
+  .preview-doc h1{font-size:20px;text-align:center;border-bottom:2px solid var(--text);padding-bottom:8px;margin-bottom:8px;}
+  .preview-doc .doc-meta{text-align:right;font-size:11px;color:var(--text3);margin-bottom:20px;}
+  .preview-doc h2{font-size:14px;background:var(--accent-light);padding:6px 12px;margin:20px 0 10px;border-left:3px solid var(--accent);color:var(--accent-dark);font-weight:700;}
+  .preview-doc table{width:100%;border-collapse:collapse;margin:10px 0;}
+  .preview-doc th,.preview-doc td{border:1px solid var(--border);padding:8px 12px;font-size:13px;text-align:left;}
+  .preview-doc th{background:var(--bg);font-weight:600;}
+  .preview-doc .sn{background:var(--accent);color:#fff;width:24px;height:24px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+  .preview-side{width:250px;flex-shrink:0;}
+  .preview-side .card{position:sticky;top:0;padding:20px;border-radius:12px;border:1px solid var(--border);background:var(--surface);margin-bottom:16px;}
+  .preview-side .card h2{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;}
+  .side-btn{
+    width:100%;padding:10px;border:1.5px solid var(--border);border-radius:10px;
+    background:var(--surface);cursor:pointer;transition:.12s;font-size:13px;
+    font-weight:600;font-family:inherit;color:var(--text);margin-bottom:8px;
+    text-align:left;display:flex;align-items:center;gap:8px;
+  }
+  .side-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+  .side-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .side-btn.primary:hover{background:var(--accent-dark);}
+  .warn-card{background:#FFFBEB;border-color:#FDE68A;}
+  .warn-card h2{color:#92400E !important;}
+  .warn-card ul{font-size:12px;padding-left:16px;color:#92400E;line-height:1.8;}
+
+  /* ===== Export ===== */
+  .export-center{max-width:720px;margin:0 auto;width:100%;padding:32px 24px;}
+  .export-center h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+  .export-center>p{font-size:14px;color:var(--text2);margin-bottom:24px;}
+  .export-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px;}
+  .exp-card{
+    padding:24px;border:1.5px solid var(--border);border-radius:12px;
+    background:var(--surface);cursor:pointer;transition:.15s;text-align:center;
+  }
+  .exp-card:hover{border-color:var(--accent);background:var(--accent-light);}
+  .exp-card.selected{border-color:var(--accent);background:var(--accent-light);box-shadow:0 0 0 3px rgba(108,99,255,.1);}
+  .exp-card .icon{font-size:32px;margin-bottom:8px;}
+  .exp-card h3{font-size:14px;font-weight:600;margin-bottom:4px;}
+  .exp-card p{font-size:11px;color:var(--text3);}
+  .share-row{display:flex;gap:8px;margin-top:12px;}
+  .share-chip{
+    flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;
+    background:var(--surface);text-align:center;cursor:pointer;transition:.12s;
+    font-size:12px;font-weight:600;color:var(--text2);
+  }
+  .share-chip:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ===== Flow Diagram ===== */
+  .flow-center{max-width:800px;margin:0 auto;width:100%;padding:32px 24px;}
+  .flow-center h1{font-size:22px;font-weight:700;margin-bottom:4px;}
+  .flow-center>p{font-size:14px;color:var(--text2);margin-bottom:28px;}
+  .flow-diagram{margin:20px 0;}
+  .flow-row{display:flex;align-items:center;justify-content:center;margin-bottom:10px;gap:12px;}
+  .flow-node{
+    background:var(--surface);border:1.5px solid var(--border);border-radius:12px;
+    padding:12px 24px;text-align:center;min-width:200px;cursor:pointer;transition:.15s;
+  }
+  .flow-node:hover{border-color:var(--accent);background:var(--accent-light);}
+  .flow-node.hl{background:var(--accent);border-color:var(--accent);}
+  .flow-node.hl h4,.flow-node.hl p{color:#fff;}
+  .flow-node h4{font-size:13px;font-weight:700;color:var(--text);}
+  .flow-node p{font-size:11px;color:var(--text3);margin-top:2px;}
+  .flow-arrow{font-size:16px;color:var(--accent);}
+  .flow-note{
+    padding:16px 20px;border-radius:12px;border:1px solid var(--border);
+    background:var(--surface);margin-top:24px;font-size:13px;line-height:1.8;color:var(--text2);
+  }
+  .flow-note strong{color:var(--text);}
+
+  /* ===== Toast ===== */
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--text);color:#fff;padding:12px 24px;border-radius:12px;
+    font-size:13px;font-weight:600;z-index:999;display:none;
+    animation:toastIn .2s;box-shadow:0 4px 20px rgba(0,0,0,.15);
+  }
+  @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+  /* ===== Scrollbar ===== */
+  ::-webkit-scrollbar{width:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text3);}
+
+  /* Utility */
+  .gap-12{gap:12px;} .mt-16{margin-top:16px;} .mb-12{margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<!-- ==================== SCREEN 1: HOME (Chat-first) ==================== -->
+<div class="screen active" id="screen-home">
+  <div class="header">
+    <div class="logo" onclick="go('screen-home')"><div class="dot"></div> Manual Studio</div>
+    <div class="user-badge" style="margin-left:auto;">👤 上村 光陽</div>
+  </div>
+
+  <div class="home-center">
+    <div class="home-greeting">
+      <div class="ai-face"><svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="hairG" x1="20" y1="8" x2="58" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#2D1B69"/><stop offset="1" stop-color="#6C63FF"/></linearGradient>
+          <linearGradient id="bodyG" x1="12" y1="56" x2="68" y2="80" gradientUnits="userSpaceOnUse"><stop stop-color="#4F46E5"/><stop offset="1" stop-color="#6C63FF"/></linearGradient>
+          <linearGradient id="eyeG" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#4F46E5"/></linearGradient>
+          <radialGradient id="faceG" cx="40" cy="32" r="20" gradientUnits="userSpaceOnUse"><stop stop-color="#FFE4CC"/><stop offset="1" stop-color="#F0C8A0"/></radialGradient>
+          <filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <!-- Body -->
+        <path d="M10 80c0-16 13-24 30-24s30 8 30 24" fill="url(#bodyG)"/>
+        <path d="M32 56l8 6 8-6" fill="#3730A3"/>
+        <path d="M32 56l8 3 8-3" stroke="#A5B4FC" stroke-width=".8" fill="none" opacity=".5"/>
+        <!-- Neck -->
+        <rect x="36" y="48" width="8" height="9" rx="2" fill="url(#faceG)"/>
+        <!-- Head -->
+        <ellipse cx="40" cy="33" rx="17" ry="19" fill="url(#faceG)"/>
+        <!-- Hair base -->
+        <path d="M23 28c0-13 7.5-20 17-20s17 7 17 20c0 2-.5 3.5-1 5 .5-4-1-10-5-14-3-3-6.5-5-11-5s-8.5 2.5-11.5 6c-3.5 4.5-4.5 9-4.5 13-.5-1.5-1-3-1-5z" fill="url(#hairG)"/>
+        <!-- Hair highlight -->
+        <path d="M28 18c3-4 7-6.5 13-7 1.5-.1 2.5 0 3.5.3-3 .5-6 2-8.5 4.5-2.5 2.5-4 5.5-5 9-.5-2-1.5-4.5-3-6.8z" fill="#8B7CF7" opacity=".35"/>
+        <!-- Hair strands overlay -->
+        <path d="M25 26c1-4 3-8.5 7-12" stroke="#A78BFA" stroke-width=".6" opacity=".3" fill="none"/>
+        <path d="M30 20c2-3 5-5.5 9-7" stroke="#A78BFA" stroke-width=".5" opacity=".2" fill="none"/>
+        <!-- Side hair -->
+        <path d="M23 33c-.5 4-0 7 1 10" stroke="url(#hairG)" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M57 33c.5 4 0 7-1 10" stroke="url(#hairG)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <!-- Eyebrows - sharp, cool -->
+        <path d="M28 27l8-2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M44 25l8 2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- Eyes - anime-inspired -->
+        <ellipse cx="33" cy="33" rx="4" ry="4.5" fill="#fff"/>
+        <ellipse cx="47" cy="33" rx="4" ry="4.5" fill="#fff"/>
+        <ellipse cx="33" cy="33.5" rx="3" ry="3.5" fill="url(#eyeG)"/>
+        <ellipse cx="47" cy="33.5" rx="3" ry="3.5" fill="url(#eyeG)"/>
+        <circle cx="33" cy="33" r="1.8" fill="#1a1a1a"/>
+        <circle cx="47" cy="33" r="1.8" fill="#1a1a1a"/>
+        <!-- Eye highlights -->
+        <circle cx="34.5" cy="31.5" r="1.2" fill="#fff"/>
+        <circle cx="48.5" cy="31.5" r="1.2" fill="#fff"/>
+        <circle cx="32" cy="34.5" r=".6" fill="#fff" opacity=".7"/>
+        <circle cx="46" cy="34.5" r=".6" fill="#fff" opacity=".7"/>
+        <!-- Eyelashes -->
+        <path d="M29 30c1-1 2.5-1.5 4-1.5" stroke="#2D1B69" stroke-width=".8" stroke-linecap="round" fill="none"/>
+        <path d="M43 28.5c1.5 0 3 .5 4 1.5" stroke="#2D1B69" stroke-width=".8" stroke-linecap="round" fill="none"/>
+        <!-- Nose -->
+        <path d="M39 37.5c.5 1 1.2 1.8 2 1.5" stroke="#D4A574" stroke-width=".8" stroke-linecap="round" fill="none"/>
+        <!-- Mouth -->
+        <path d="M36 42.5c1.5 2 6.5 2 8 0" stroke="#C47A5A" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+        <!-- Headset -->
+        <path d="M19 30c0-12 9-22 21-22s21 10 21 22" stroke="#374151" stroke-width="2.5" fill="none"/>
+        <rect x="14" y="29" width="7" height="10" rx="3.5" fill="#374151"/>
+        <rect x="59" y="29" width="7" height="10" rx="3.5" fill="#374151"/>
+        <rect x="15" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/>
+        <rect x="60" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/>
+        <!-- Mic arm -->
+        <path d="M14 36c-3 2-4 6-2 10" stroke="#374151" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <circle cx="12" cy="47" r="2.5" fill="#374151"/>
+        <circle cx="12" cy="47" r="1.5" fill="#4F46E5"/>
+        <!-- AI glow ring -->
+        <circle cx="40" cy="33" r="22" stroke="#6C63FF" stroke-width=".5" opacity=".2" fill="none" filter="url(#glow)"/>
+        <!-- Badge -->
+        <rect x="50" y="64" width="28" height="14" rx="7" fill="#4F46E5" filter="url(#glow)"/>
+        <text x="64" y="74" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="sans-serif">後輩AI</text>
+      </svg></div>
+      <h1>何の手順書を作りますか？</h1>
+      <p>テーマだけ教えてください。詳しい内容は後輩AIが質問しながら聞き出します。</p>
+    </div>
+
+    <!-- Mode Select -->
+    <div class="mode-chips">
+      <div class="mode-chip selected" id="modeChat" onclick="selectMode('chat')">
+        <div>
+          <div style="display:flex;align-items:center;gap:6px;"><span class="chip-icon">💬</span> チャットで教える</div>
+          <div class="chip-desc">テキスト入力でAIと対話</div>
+        </div>
+      </div>
+      <div class="mode-chip" id="modeVoice" onclick="selectMode('voice')">
+        <div>
+          <div style="display:flex;align-items:center;gap:6px;"><span class="chip-icon">🎤</span> 声で教える</div>
+          <div class="chip-desc">話しかけるだけでAIが聞き取り</div>
+        </div>
+      </div>
+      <div class="mode-chip" id="modeQuick" onclick="selectMode('quick')">
+        <div>
+          <div style="display:flex;align-items:center;gap:6px;"><span class="chip-icon">⚡</span> サクッと作る</div>
+          <div class="chip-desc">メモ書きから即座に手順書化</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Input -->
+    <div class="home-input-wrap">
+      <textarea id="homeInput" placeholder="例: 端末の貸出と返却の手順" rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();startProject()}" style="min-height:36px;"></textarea>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;">※ ここではテーマだけでOKです。業務の詳細は次の画面でAIが質問します。</div>
+      <div class="home-input-actions">
+        <div class="input-icon-btn" title="参考ファイルを添付（既存の手順書やメモなど）" style="position:relative;width:auto;padding:0 12px;" onclick="showToast('📎 ファイルを添付しました（デモ）')">📎 <span style="font-size:10px;color:var(--text3);margin-left:2px;">添付</span></div>
+        <div class="spacer"></div>
+        <button class="send-btn" onclick="startProject()">始める →</button>
+      </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="suggestions">
+      <div class="sug-chip" onclick="fillSuggestion('端末の貸出と返却の手順')">📱 端末貸出</div>
+      <div class="sug-chip" onclick="fillSuggestion('本番リリース作業の手順')">🚀 リリース作業</div>
+      <div class="sug-chip" onclick="fillSuggestion('障害発生時の対応フロー')">🚨 障害対応</div>
+      <div class="sug-chip" onclick="fillSuggestion('開発環境のセットアップ')">💻 環境構築</div>
+    </div>
+
+    <!-- Recent -->
+    <div class="recent-section">
+      <div class="recent-label">📂 作成中・最近のプロジェクト</div>
+      <div class="recent-list">
+        <div class="recent-card" onclick="go('screen-chat')">
+          <h4>端末貸出手順書</h4>
+          <p>💬 「統一ルールとして理想の流れがあれば教えて...」</p>
+          <div style="height:4px;background:var(--bg);border-radius:2px;margin:8px 0 6px;overflow:hidden;"><div style="height:100%;width:65%;background:var(--accent);border-radius:2px;"></div></div>
+          <div class="rc-meta"><span class="rc-badge learning">学習中</span> <span style="color:var(--text3)">65% ・ 4/09</span></div>
+          <div style="margin-top:8px;"><span style="display:inline-block;padding:5px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer;" onclick="event.stopPropagation();go('screen-chat')">▶ 続きから再開</span></div>
+        </div>
+        <div class="recent-card" onclick="go('screen-chat')">
+          <h4>リリース作業手順</h4>
+          <p>💬 「リリース前のチェックリストについて教えて...」</p>
+          <div style="height:4px;background:var(--bg);border-radius:2px;margin:8px 0 6px;overflow:hidden;"><div style="height:100%;width:30%;background:var(--accent);border-radius:2px;"></div></div>
+          <div class="rc-meta"><span class="rc-badge draft">下書き</span> <span style="color:var(--text3)">30% ・ 4/07</span></div>
+          <div style="margin-top:8px;"><span style="display:inline-block;padding:5px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer;" onclick="event.stopPropagation();go('screen-chat')">▶ 続きから再開</span></div>
+        </div>
+        <div class="recent-card" onclick="go('screen-preview')">
+          <h4>障害対応フロー</h4>
+          <p>本番障害時の初動対応〜エスカレーション</p>
+          <div class="rc-meta" style="margin-top:8px;"><span class="rc-badge done">完了</span> <span style="color:var(--text3)">4/08</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN: Quick Mode ==================== -->
+<div class="screen" id="screen-quick">
+  <div class="header">
+    <div class="logo" onclick="go('screen-home')"><div class="dot"></div> Manual Studio</div>
+    <nav><a onclick="go('screen-home')">ホーム</a></nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="quick-center">
+    <h1>⚡ サクッと手順書作成</h1>
+    <p>メモ書きやキーワードを入力するだけ。AIが手順書に仕上げます。</p>
+    <div class="quick-form">
+      <div class="form-group">
+        <label>タイトル</label>
+        <input type="text" placeholder="例: 端末貸出手順" value="端末貸出手順">
+      </div>
+      <div class="form-group">
+        <label>内容（メモ書きでOK）</label>
+        <textarea placeholder="箇条書き、メモ、走り書き — なんでもOKです。AIが手順書に整えます。">・台帳Excelで空きを確認
+・リーダーに申請
+・貸出票に記入
+・承認もらう
+・端末受取り
+---返却---
+・データ消去
+・リーダーに報告
+・台帳を更新
+・棚に戻す</textarea>
+      </div>
+      <div class="form-group">
+        <label>テンプレート</label>
+        <select>
+          <option>📋 標準業務手順書</option>
+          <option>🔧 システム操作手順書</option>
+          <option>🚨 障害対応手順書</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="send-btn" style="padding:12px 28px;font-size:14px;" onclick="go('screen-preview');showToast('メモから手順書を生成しました！')">⚡ 手順書を生成</button>
+        <button style="padding:12px 20px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text2);" onclick="go('screen-home')">← 戻る</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN: OJT Chat ==================== -->
+<div class="screen" id="screen-chat">
+  <div class="header">
+    <div class="logo" onclick="go('screen-home')"><div class="dot"></div> Manual Studio</div>
+    <nav>
+      <a onclick="go('screen-home')">ホーム</a>
+      <a class="active" onclick="go('screen-chat')">対話</a>
+      <a onclick="go('screen-preview')">プレビュー</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="autosave">✓ 自動保存済み — いつでも中断・再開できます</div>
+
+  <div class="chat-layout">
+    <div class="chat-main">
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg ai">
+          <div class="avatar"><svg viewBox="0 0 80 80" fill="none"><defs><linearGradient id="hG2" x1="20" y1="8" x2="58" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#2D1B69"/><stop offset="1" stop-color="#6C63FF"/></linearGradient><linearGradient id="eG2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#4F46E5"/></linearGradient></defs><path d="M10 80c0-16 13-24 30-24s30 8 30 24" fill="#6C63FF"/><path d="M32 56l8 6 8-6" fill="#3730A3"/><rect x="36" y="48" width="8" height="9" rx="2" fill="#FFE4CC"/><ellipse cx="40" cy="33" rx="17" ry="19" fill="#FFE4CC"/><path d="M23 28c0-13 7.5-20 17-20s17 7 17 20c0 2-.5 3.5-1 5 .5-4-1-10-5-14-3-3-6.5-5-11-5s-8.5 2.5-11.5 6c-3.5 4.5-4.5 9-4.5 13-.5-1.5-1-3-1-5z" fill="url(#hG2)"/><path d="M28 18c3-4 7-6.5 13-7 1.5-.1 2.5 0 3.5.3-3 .5-6 2-8.5 4.5-2.5 2.5-4 5.5-5 9-.5-2-1.5-4.5-3-6.8z" fill="#8B7CF7" opacity=".35"/><path d="M23 33c-.5 4 0 7 1 10" stroke="url(#hG2)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M57 33c.5 4 0 7-1 10" stroke="url(#hG2)" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M28 27l8-2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><path d="M44 25l8 2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><ellipse cx="33" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="47" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="33" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><ellipse cx="47" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><circle cx="33" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="47" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="34.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="48.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="32" cy="34.5" r=".6" fill="#fff" opacity=".7"/><circle cx="46" cy="34.5" r=".6" fill="#fff" opacity=".7"/><path d="M39 37.5c.5 1 1.2 1.8 2 1.5" stroke="#D4A574" stroke-width=".8" stroke-linecap="round" fill="none"/><path d="M36 42.5c1.5 2 6.5 2 8 0" stroke="#C47A5A" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M19 30c0-12 9-22 21-22s21 10 21 22" stroke="#374151" stroke-width="2.5" fill="none"/><rect x="14" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="59" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="15" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><rect x="60" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><path d="M14 36c-3 2-4 6-2 10" stroke="#374151" stroke-width="1.5" stroke-linecap="round" fill="none"/><circle cx="12" cy="47" r="2.5" fill="#374151"/><circle cx="12" cy="47" r="1.5" fill="#4F46E5"/><rect x="50" y="64" width="28" height="14" rx="7" fill="#4F46E5"/><text x="64" y="74" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="sans-serif">後輩AI</text></svg></div>
+          <div class="bubble">
+            こんにちは！手順書作成のお手伝いをします。<br><br>
+            <strong>「端末貸出手順書」</strong>について教えてください。<br>
+            まず — <strong>端末の貸出はどのような場面で発生しますか？</strong>
+          </div>
+        </div>
+        <div class="msg user">
+          <div class="avatar">👤</div>
+          <div class="bubble">テストや検証のために開発端末を使いたい時に、端末管理台帳に記入して管理者から端末を借りるんだよ。チームによって微妙にルールが違うから困るんだけどね。</div>
+        </div>
+        <div class="msg ai">
+          <div class="avatar"><svg viewBox="0 0 80 80" fill="none"><defs><linearGradient id="hG2" x1="20" y1="8" x2="58" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#2D1B69"/><stop offset="1" stop-color="#6C63FF"/></linearGradient><linearGradient id="eG2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#4F46E5"/></linearGradient></defs><path d="M10 80c0-16 13-24 30-24s30 8 30 24" fill="#6C63FF"/><path d="M32 56l8 6 8-6" fill="#3730A3"/><rect x="36" y="48" width="8" height="9" rx="2" fill="#FFE4CC"/><ellipse cx="40" cy="33" rx="17" ry="19" fill="#FFE4CC"/><path d="M23 28c0-13 7.5-20 17-20s17 7 17 20c0 2-.5 3.5-1 5 .5-4-1-10-5-14-3-3-6.5-5-11-5s-8.5 2.5-11.5 6c-3.5 4.5-4.5 9-4.5 13-.5-1.5-1-3-1-5z" fill="url(#hG2)"/><path d="M28 18c3-4 7-6.5 13-7 1.5-.1 2.5 0 3.5.3-3 .5-6 2-8.5 4.5-2.5 2.5-4 5.5-5 9-.5-2-1.5-4.5-3-6.8z" fill="#8B7CF7" opacity=".35"/><path d="M23 33c-.5 4 0 7 1 10" stroke="url(#hG2)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M57 33c.5 4 0 7-1 10" stroke="url(#hG2)" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M28 27l8-2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><path d="M44 25l8 2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><ellipse cx="33" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="47" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="33" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><ellipse cx="47" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><circle cx="33" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="47" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="34.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="48.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="32" cy="34.5" r=".6" fill="#fff" opacity=".7"/><circle cx="46" cy="34.5" r=".6" fill="#fff" opacity=".7"/><path d="M39 37.5c.5 1 1.2 1.8 2 1.5" stroke="#D4A574" stroke-width=".8" stroke-linecap="round" fill="none"/><path d="M36 42.5c1.5 2 6.5 2 8 0" stroke="#C47A5A" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M19 30c0-12 9-22 21-22s21 10 21 22" stroke="#374151" stroke-width="2.5" fill="none"/><rect x="14" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="59" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="15" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><rect x="60" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><path d="M14 36c-3 2-4 6-2 10" stroke="#374151" stroke-width="1.5" stroke-linecap="round" fill="none"/><circle cx="12" cy="47" r="2.5" fill="#374151"/><circle cx="12" cy="47" r="1.5" fill="#4F46E5"/><rect x="50" y="64" width="28" height="14" rx="7" fill="#4F46E5"/><text x="64" y="74" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="sans-serif">後輩AI</text></svg></div>
+          <div class="bubble">
+            なるほど、チーム間でルールが異なるんですね。<br><br>
+            もう少し詳しく教えてください：<br>
+            1. <strong>端末管理台帳</strong>は紙ですか？Excelですか？<br>
+            2. 管理者は<strong>チームごとに違う</strong>方ですか？<br>
+            3. ルールの違いは具体的にどのあたりですか？
+          </div>
+        </div>
+        <div class="msg user">
+          <div class="avatar">👤</div>
+          <div class="bubble">台帳はExcelだよ。共有フォルダに置いてある。管理者はチームリーダーが兼任してて、Aチームは貸出票に手書きで書くけど、Bチームは口頭でOKなんだ。返却もAチームはリーダー確認が必須だけど、Bチームはそのまま棚に戻していいルール。</div>
+        </div>
+        <div class="msg ai">
+          <div class="avatar"><svg viewBox="0 0 80 80" fill="none"><defs><linearGradient id="hG2" x1="20" y1="8" x2="58" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#2D1B69"/><stop offset="1" stop-color="#6C63FF"/></linearGradient><linearGradient id="eG2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#4F46E5"/></linearGradient></defs><path d="M10 80c0-16 13-24 30-24s30 8 30 24" fill="#6C63FF"/><path d="M32 56l8 6 8-6" fill="#3730A3"/><rect x="36" y="48" width="8" height="9" rx="2" fill="#FFE4CC"/><ellipse cx="40" cy="33" rx="17" ry="19" fill="#FFE4CC"/><path d="M23 28c0-13 7.5-20 17-20s17 7 17 20c0 2-.5 3.5-1 5 .5-4-1-10-5-14-3-3-6.5-5-11-5s-8.5 2.5-11.5 6c-3.5 4.5-4.5 9-4.5 13-.5-1.5-1-3-1-5z" fill="url(#hG2)"/><path d="M28 18c3-4 7-6.5 13-7 1.5-.1 2.5 0 3.5.3-3 .5-6 2-8.5 4.5-2.5 2.5-4 5.5-5 9-.5-2-1.5-4.5-3-6.8z" fill="#8B7CF7" opacity=".35"/><path d="M23 33c-.5 4 0 7 1 10" stroke="url(#hG2)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M57 33c.5 4 0 7-1 10" stroke="url(#hG2)" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M28 27l8-2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><path d="M44 25l8 2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><ellipse cx="33" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="47" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="33" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><ellipse cx="47" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><circle cx="33" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="47" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="34.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="48.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="32" cy="34.5" r=".6" fill="#fff" opacity=".7"/><circle cx="46" cy="34.5" r=".6" fill="#fff" opacity=".7"/><path d="M39 37.5c.5 1 1.2 1.8 2 1.5" stroke="#D4A574" stroke-width=".8" stroke-linecap="round" fill="none"/><path d="M36 42.5c1.5 2 6.5 2 8 0" stroke="#C47A5A" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M19 30c0-12 9-22 21-22s21 10 21 22" stroke="#374151" stroke-width="2.5" fill="none"/><rect x="14" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="59" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="15" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><rect x="60" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><path d="M14 36c-3 2-4 6-2 10" stroke="#374151" stroke-width="1.5" stroke-linecap="round" fill="none"/><circle cx="12" cy="47" r="2.5" fill="#374151"/><circle cx="12" cy="47" r="1.5" fill="#4F46E5"/><rect x="50" y="64" width="28" height="14" rx="7" fill="#4F46E5"/><text x="64" y="74" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="sans-serif">後輩AI</text></svg></div>
+          <div class="bubble">
+            整理しますね：<br><br>
+            <strong>【現状の理解】</strong><br>
+            ・台帳: Excel（共有フォルダ）<br>
+            ・管理者: チームリーダー兼任<br>
+            ・貸出: A=貸出票(手書き) / B=口頭<br>
+            ・返却: A=リーダー確認必須 / B=直接返却OK<br><br>
+            この理解で合っていますか？<br>
+            次に、<strong>統一後の理想の流れ</strong>があれば教えてください。
+          </div>
+        </div>
+      </div>
+
+      <!-- Input area: mode switch bar + text/voice -->
+      <div class="chat-input-bar">
+        <div style="width:100%;max-width:800px;">
+          <!-- Mode switch bar -->
+          <div id="chatModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="display:flex;background:var(--bg);border-radius:8px;padding:2px;border:1px solid var(--border);">
+              <button class="chat-mode-btn active" id="chatModeText" onclick="setChatMode('text')">💬 チャット</button>
+              <button class="chat-mode-btn" id="chatModeVoice" onclick="setChatMode('voice')">🎤 音声</button>
+            </div>
+            <span style="font-size:11px;color:var(--text3);margin-left:4px;" id="chatModeHint">テキストで入力中 — いつでも音声に切り替えできます</span>
+            <div class="spacer"></div>
+            <button class="send-btn" onclick="go('screen-preview');showToast('手順書を生成しました！')" style="padding:6px 16px;font-size:12px;background:var(--success);">📄 手順書を生成</button>
+          </div>
+          <!-- Text input -->
+          <div class="chat-input-inner" id="chatTextInput">
+            <textarea placeholder="メッセージを入力..." rows="1" id="chatInput" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+            <div class="chat-input-bottom">
+              <div class="input-icon-btn" title="添付" style="width:32px;height:32px;font-size:14px;" onclick="showToast('📎 ファイルを添付しました（デモ）')">📎</div>
+              <div class="spacer"></div>
+              <button class="send-btn" onclick="sendMsg()" style="padding:6px 16px;font-size:12px;">送信</button>
+            </div>
+          </div>
+          <!-- Voice input -->
+          <div id="chatVoiceInput" style="display:none;background:var(--surface);border:1.5px solid var(--accent);border-radius:16px;padding:20px;">
+            <!-- Status + visualizer row -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;animation:blink 1s infinite;" id="voiceRecDot"></div>
+              <span style="font-size:13px;font-weight:600;color:var(--text);" id="voiceStatusText">🎤 聞き取り中...</span>
+              <div class="voice-vis" style="margin-left:auto;height:28px;"><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div></div>
+            </div>
+            <!-- Realtime transcript -->
+            <div id="voiceTranscript" style="min-height:40px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);line-height:1.6;margin-bottom:12px;text-align:left;">
+              <span style="color:var(--text3);">音声を認識するとここにテキストが表示されます...</span>
+            </div>
+            <!-- Action buttons -->
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button onclick="voiceRetry()" style="padding:7px 16px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text2);">🔄 やり直し</button>
+              <div style="flex:1;"></div>
+              <button onclick="voiceStop()" style="padding:7px 16px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text2);">⏹ 終了</button>
+              <button onclick="voiceSend()" style="padding:7px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">送信 →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="chat-panel">
+      <h3>進捗</h3>
+      <div class="panel-progress-bar"><div class="panel-progress-fill" style="width:65%"></div></div>
+      <div class="panel-progress-text"><span>完了項目: 3/8</span><span style="color:var(--accent);font-weight:700;">65%</span></div>
+
+      <h3>チェックリスト</h3>
+      <ul class="check-list">
+        <li><div class="ck ck-done">✓</div> 目的・概要</li>
+        <li><div class="ck ck-done">✓</div> 適用範囲</li>
+        <li><div class="ck ck-done">✓</div> 貸出手順</li>
+        <li><div class="ck ck-partial">△</div> 返却手順</li>
+        <li><div class="ck ck-no">-</div> 端末の種類・台数</li>
+        <li><div class="ck ck-no">-</div> トラブル時の対応</li>
+        <li><div class="ck ck-no">-</div> 返却期限・延長</li>
+        <li><div class="ck ck-no">-</div> 緊急時フロー</li>
+      </ul>
+
+      <h3 style="margin-top:16px;">プレビュー</h3>
+      <div class="skel-preview">
+        <div class="skel-label">1. 目的</div>
+        <div class="skel-row filled"></div><div class="skel-row filled short"></div>
+        <div class="skel-label">2. 貸出手順</div>
+        <div class="skel-row filled"></div><div class="skel-row filled med"></div><div class="skel-row filled short"></div>
+        <div class="skel-label">3. 返却手順</div>
+        <div class="skel-row filled med"></div><div class="skel-row" style="opacity:.3;"></div>
+        <div class="skel-label">4. トラブル対応</div>
+        <div class="skel-row"></div>
+      </div>
+
+      <h3 style="margin-top:16px;">添付資料</h3>
+      <div style="font-size:11px;padding:6px 10px;background:var(--bg);border-radius:6px;margin-bottom:4px;color:var(--text2);">📄 端末管理台帳.xlsx</div>
+      <div style="font-size:11px;padding:6px 10px;background:var(--bg);border-radius:6px;color:var(--text2);">📄 Aチーム貸出票.pdf</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN: Preview ==================== -->
+<div class="screen" id="screen-preview">
+  <div class="header">
+    <div class="logo" onclick="go('screen-home')"><div class="dot"></div> Manual Studio</div>
+    <nav>
+      <a onclick="go('screen-home')">ホーム</a>
+      <a onclick="go('screen-chat')">対話</a>
+      <a class="active" onclick="go('screen-preview')">プレビュー</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="preview-wrap">
+    <div class="preview-doc">
+      <h1>端末貸出・返却手順書</h1>
+      <div class="doc-meta">文書番号: MNL-2026-004 | 作成日: 2026/04/09 | 版数: 1.0</div>
+      <h2>1. 目的</h2>
+      <p>本手順書は、テスト・検証業務における端末貸出・返却の手順を統一し、チーム間のルール差異を解消することを目的とする。</p>
+      <h2>2. 適用範囲</h2>
+      <p>Aチーム・Bチームを含む全開発チームの端末貸出業務に適用する。</p>
+      <h2>3. 用語定義</h2>
+      <table><tr><th>用語</th><th>定義</th></tr><tr><td>端末管理台帳</td><td>共有フォルダ上のExcel。貸出・返却の記録を管理。</td></tr><tr><td>管理者</td><td>チームリーダーが兼任。承認・確認を行う。</td></tr></table>
+      <h2>4. 貸出手順</h2>
+      <table><tr><th style="width:50px">No.</th><th>作業内容</th><th>担当</th><th>補足</th></tr>
+        <tr><td><span class="sn">1</span></td><td>端末管理台帳で空き端末を確認</td><td>利用者</td><td>共有フォルダ参照</td></tr>
+        <tr><td><span class="sn">2</span></td><td>チームリーダーに貸出を申請</td><td>利用者</td><td>口頭 or チャット</td></tr>
+        <tr><td><span class="sn">3</span></td><td>貸出票に必要事項を記入</td><td>利用者</td><td>氏名・日付・端末番号・目的</td></tr>
+        <tr><td><span class="sn">4</span></td><td>管理者が貸出を承認</td><td>管理者</td><td>台帳に記録</td></tr>
+        <tr><td><span class="sn">5</span></td><td>端末を受け取り利用開始</td><td>利用者</td><td>—</td></tr>
+      </table>
+      <h2>5. 返却手順</h2>
+      <table><tr><th style="width:50px">No.</th><th>作業内容</th><th>担当</th><th>補足</th></tr>
+        <tr><td><span class="sn">1</span></td><td>端末の初期化・データ消去</td><td>利用者</td><td>個人データ確認</td></tr>
+        <tr><td><span class="sn">2</span></td><td>管理者に返却を報告</td><td>利用者</td><td>対面で確認</td></tr>
+        <tr><td><span class="sn">3</span></td><td>管理者が端末状態を確認</td><td>管理者</td><td>目視チェック</td></tr>
+        <tr><td><span class="sn">4</span></td><td>台帳を更新</td><td>管理者</td><td>返却日時を記録</td></tr>
+        <tr><td><span class="sn">5</span></td><td>端末を所定の場所に格納</td><td>管理者</td><td>充電ケーブル接続</td></tr>
+      </table>
+      <h2>6. 注意事項</h2>
+      <ul style="padding-left:20px;margin:8px 0;"><li>返却予定日超過時は事前に延長申請</li><li>故障・紛失は直ちに報告</li><li>テストデータに個人情報を使用しない</li></ul>
+    </div>
+    <div class="preview-side">
+      <div class="card">
+        <h2>操作</h2>
+        <button class="side-btn primary" onclick="go('screen-export')">📤 エクスポート</button>
+        <button class="side-btn" onclick="go('screen-chat')">💬 追加で教える</button>
+        <button class="side-btn" onclick="showToast('✏️ 編集モードに切り替えました（デモ）')">✏️ 手動で編集</button>
+        <button class="side-btn" onclick="showToast('🔄 手順書を再生成しました（デモ）')">🔄 再生成</button>
+      </div>
+      <div class="card warn-card">
+        <h2>⚠ 未確認の項目</h2>
+        <ul><li>端末の種類・台数</li><li>トラブル時の対応</li><li>返却期限・延長ルール</li></ul>
+        <button class="side-btn" style="margin-top:10px;" onclick="go('screen-chat')">対話を続ける →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN: Export ==================== -->
+<div class="screen" id="screen-export">
+  <div class="header">
+    <div class="logo" onclick="go('screen-home')"><div class="dot"></div> Manual Studio</div>
+    <nav>
+      <a onclick="go('screen-home')">ホーム</a>
+      <a onclick="go('screen-preview')">プレビュー</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="export-center">
+    <h1>エクスポート</h1>
+    <p>「端末貸出・返却手順書」を出力します。</p>
+    <div class="export-grid">
+      <div class="exp-card selected" onclick="selExp(this)"><div class="icon">📊</div><h3>テキスト (.txt)</h3><p>すぐに共有・編集可能</p></div>
+      <div class="exp-card" onclick="selExp(this)"><div class="icon">📗</div><h3>Excel (.xlsx)</h3><p>表形式で管理</p></div>
+      <div class="exp-card" onclick="selExp(this)"><div class="icon">📘</div><h3>Word (.docx)</h3><p>承認フロー用</p></div>
+      <div class="exp-card" onclick="selExp(this)"><div class="icon">📕</div><h3>PDF</h3><p>配布・印刷用</p></div>
+    </div>
+    <div class="card" style="padding:20px;border-radius:12px;border:1px solid var(--border);background:var(--surface);">
+      <h2 style="font-size:14px;font-weight:700;margin-bottom:12px;">チームに共有</h2>
+      <div class="share-row">
+        <div class="share-chip" onclick="showToast('リンクをコピーしました')">🔗 リンク</div>
+        <div class="share-chip" onclick="showToast('Slackに送信しました')">💬 Slack</div>
+        <div class="share-chip" onclick="showToast('Teamsに送信しました')">💼 Teams</div>
+        <div class="share-chip" onclick="showToast('メールで送信しました')">📧 メール</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:20px;">
+      <button style="padding:10px 20px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text2);" onclick="go('screen-preview')">← 戻る</button>
+      <button class="send-btn" style="padding:12px 28px;font-size:14px;" onclick="doExport()">📤 エクスポート</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN: Flow ==================== -->
+<div class="screen" id="screen-flow">
+  <div class="header">
+    <div class="logo" onclick="go('screen-home')"><div class="dot"></div> Manual Studio</div>
+    <nav>
+      <a onclick="go('screen-home')">ホーム</a>
+      <a class="active" onclick="go('screen-flow')">画面遷移図</a>
+    </nav>
+    <div class="user-badge">👤 上村 光陽</div>
+  </div>
+  <div class="flow-center">
+    <h1>画面遷移図</h1>
+    <p>各ボックスをクリックすると該当画面に移動します。</p>
+    <div class="flow-diagram">
+      <div class="flow-row">
+        <div class="flow-node hl" onclick="go('screen-home')"><h4>🏠 ホーム</h4><p>テーマ入力 / モード選択（💬チャット・🎤音声・⚡サクッと）</p></div>
+      </div>
+      <div class="flow-row"><div class="flow-arrow">↓</div></div>
+      <div class="flow-row" style="gap:32px;">
+        <div style="text-align:center;">
+          <div class="flow-node" onclick="go('screen-chat')"><h4>💬🎤 AIと対話</h4><p>チャット ⇄ 音声を自由に切替<br>好きなタイミングで使い分け</p></div>
+          <div class="flow-arrow" style="margin:6px 0;">↓</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="flow-node" onclick="go('screen-quick')"><h4>⚡ サクッと作成</h4><p>メモ書きを貼り付けるだけ<br>即座に手順書化</p></div>
+          <div class="flow-arrow" style="margin:6px 0;">↓</div>
+        </div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-node" onclick="go('screen-preview')" style="min-width:280px;border-color:var(--accent);">
+          <h4 style="color:var(--accent);">📄 手順書プレビュー</h4><p>編集 / 再生成 / 追加対話</p>
+        </div>
+      </div>
+      <div class="flow-row"><div class="flow-arrow">↓</div></div>
+      <div class="flow-row">
+        <div class="flow-node" onclick="go('screen-export')"><h4>📤 エクスポート & 共有</h4><p>TXT / Excel / Word / PDF / チーム共有</p></div>
+      </div>
+    </div>
+    <div class="flow-note">
+      <strong>💬🎤 AIと対話</strong> — チャットと音声を好きなタイミングで切り替えながら作成。途中で中断しても自動保存。<br>
+      <strong>⚡ サクッと作成</strong> — メモ書きや箇条書きを入力するだけで手順書を即生成。時間がないときに最適。<br>
+      <strong>🔄 反復サイクル</strong> — 対話 ↔ プレビュー は何度でも行き来OK。不足を発見したら追加で教えるだけ。
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let currentMode = 'chat';
+
+  function go(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+  }
+
+  function selectMode(mode) {
+    currentMode = mode;
+    document.getElementById('modeChat').classList.toggle('selected', mode === 'chat');
+    document.getElementById('modeVoice').classList.toggle('selected', mode === 'voice');
+    document.getElementById('modeQuick').classList.toggle('selected', mode === 'quick');
+  }
+
+  function fillSuggestion(text) {
+    document.getElementById('homeInput').value = text;
+    document.getElementById('homeInput').focus();
+  }
+
+  function startProject() {
+    const text = document.getElementById('homeInput').value.trim();
+    if (!text) { document.getElementById('homeInput').focus(); return; }
+    if (currentMode === 'quick') {
+      go('screen-quick');
+    } else {
+      go('screen-chat');
+      // Apply selected mode to chat
+      if (currentMode === 'voice') {
+        setChatMode('voice');
+        showToast('🎤 音声モードで対話を開始しました');
+      } else {
+        setChatMode('text');
+        showToast('💬 チャットで対話を開始しました');
+      }
+    }
+  }
+
+  function setChatMode(mode) {
+    const textInput = document.getElementById('chatTextInput');
+    const voiceInput = document.getElementById('chatVoiceInput');
+    const btnText = document.getElementById('chatModeText');
+    const btnVoice = document.getElementById('chatModeVoice');
+    const hint = document.getElementById('chatModeHint');
+    if (mode === 'voice') {
+      textInput.style.display = 'none';
+      voiceInput.style.display = 'block';
+      btnText.classList.remove('active');
+      btnVoice.classList.add('active');
+      hint.textContent = '音声で入力中 — いつでもチャットに切り替えできます';
+    } else {
+      textInput.style.display = '';
+      voiceInput.style.display = 'none';
+      btnText.classList.add('active');
+      btnVoice.classList.remove('active');
+      hint.textContent = 'テキストで入力中 — いつでも音声に切り替えできます';
+    }
+  }
+
+  function toggleVoice() {
+    setChatMode('voice');
+  }
+
+  // === Voice input demo functions ===
+  let voiceTimer = null;
+  const voiceDemoText = '端末の返却期限は基本的に1週間で、延長したい場合はリーダーに事前申請が必要です。返却時にはデータの初期化を忘れずにお願いします。';
+  let voiceCharIdx = 0;
+
+  function startVoiceDemo() {
+    voiceCharIdx = 0;
+    const el = document.getElementById('voiceTranscript');
+    el.innerHTML = '';
+    document.getElementById('voiceRecDot').style.animationPlayState = 'running';
+    document.getElementById('voiceStatusText').textContent = '🎤 聞き取り中...';
+    voiceTimer = setInterval(() => {
+      if (voiceCharIdx < voiceDemoText.length) {
+        el.textContent += voiceDemoText[voiceCharIdx];
+        voiceCharIdx++;
+      } else {
+        clearInterval(voiceTimer);
+        voiceTimer = null;
+        document.getElementById('voiceStatusText').textContent = '✅ 認識完了 — 送信またはやり直しを選択';
+        document.getElementById('voiceRecDot').style.animationPlayState = 'paused';
+        document.getElementById('voiceRecDot').style.opacity = '0.3';
+      }
+    }, 60);
+  }
+
+  function voiceRetry() {
+    if (voiceTimer) { clearInterval(voiceTimer); voiceTimer = null; }
+    document.getElementById('voiceRecDot').style.opacity = '';
+    showToast('🔄 やり直します');
+    startVoiceDemo();
+  }
+
+  function voiceStop() {
+    if (voiceTimer) { clearInterval(voiceTimer); voiceTimer = null; }
+    document.getElementById('voiceRecDot').style.opacity = '';
+    setChatMode('text');
+    showToast('⏹ 音声入力を終了しました');
+  }
+
+  function voiceSend() {
+    if (voiceTimer) { clearInterval(voiceTimer); voiceTimer = null; }
+    const el = document.getElementById('voiceTranscript');
+    const text = el.textContent.trim();
+    if (!text || text === '音声を認識するとここにテキストが表示されます...') {
+      showToast('まだ音声が認識されていません');
+      return;
+    }
+    // Add as user message
+    const msgs = document.getElementById('chatMessages');
+    msgs.innerHTML += `<div class="msg user"><div class="avatar">👤</div><div class="bubble">🎤 ${text.replace(/</g,'&lt;')}</div></div>`;
+    // Reset voice UI
+    el.innerHTML = '<span style="color:var(--text3);">音声を認識するとここにテキストが表示されます...</span>';
+    document.getElementById('voiceRecDot').style.opacity = '';
+    document.getElementById('voiceStatusText').textContent = '🎤 聞き取り中...';
+    // AI response
+    setTimeout(() => {
+      const r = demoResponses[demoIdx % demoResponses.length]; demoIdx++;
+      msgs.innerHTML += `<div class="msg ai"><div class="avatar"><svg viewBox="0 0 80 80" fill="none"><defs><linearGradient id="hG2" x1="20" y1="8" x2="58" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#2D1B69"/><stop offset="1" stop-color="#6C63FF"/></linearGradient><linearGradient id="eG2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#4F46E5"/></linearGradient></defs><path d="M10 80c0-16 13-24 30-24s30 8 30 24" fill="#6C63FF"/><path d="M32 56l8 6 8-6" fill="#3730A3"/><rect x="36" y="48" width="8" height="9" rx="2" fill="#FFE4CC"/><ellipse cx="40" cy="33" rx="17" ry="19" fill="#FFE4CC"/><path d="M23 28c0-13 7.5-20 17-20s17 7 17 20c0 2-.5 3.5-1 5 .5-4-1-10-5-14-3-3-6.5-5-11-5s-8.5 2.5-11.5 6c-3.5 4.5-4.5 9-4.5 13-.5-1.5-1-3-1-5z" fill="url(#hG2)"/><path d="M28 18c3-4 7-6.5 13-7 1.5-.1 2.5 0 3.5.3-3 .5-6 2-8.5 4.5-2.5 2.5-4 5.5-5 9-.5-2-1.5-4.5-3-6.8z" fill="#8B7CF7" opacity=".35"/><path d="M23 33c-.5 4 0 7 1 10" stroke="url(#hG2)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M57 33c.5 4 0 7-1 10" stroke="url(#hG2)" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M28 27l8-2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><path d="M44 25l8 2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><ellipse cx="33" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="47" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="33" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><ellipse cx="47" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><circle cx="33" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="47" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="34.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="48.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="32" cy="34.5" r=".6" fill="#fff" opacity=".7"/><circle cx="46" cy="34.5" r=".6" fill="#fff" opacity=".7"/><path d="M39 37.5c.5 1 1.2 1.8 2 1.5" stroke="#D4A574" stroke-width=".8" stroke-linecap="round" fill="none"/><path d="M36 42.5c1.5 2 6.5 2 8 0" stroke="#C47A5A" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M19 30c0-12 9-22 21-22s21 10 21 22" stroke="#374151" stroke-width="2.5" fill="none"/><rect x="14" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="59" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="15" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><rect x="60" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><path d="M14 36c-3 2-4 6-2 10" stroke="#374151" stroke-width="1.5" stroke-linecap="round" fill="none"/><circle cx="12" cy="47" r="2.5" fill="#374151"/><circle cx="12" cy="47" r="1.5" fill="#4F46E5"/><rect x="50" y="64" width="28" height="14" rx="7" fill="#4F46E5"/><text x="64" y="74" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="sans-serif">後輩AI</text></svg></div><div class="bubble">${r.replace(/\n/g,'<br>')}</div></div>`;
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 600);
+    msgs.scrollTop = msgs.scrollHeight;
+    showToast('🎤 音声メッセージを送信しました');
+  }
+
+  // Override setChatMode to trigger demo when switching to voice
+  const _origSetChatMode = setChatMode;
+  setChatMode = function(mode) {
+    _origSetChatMode(mode);
+    if (mode === 'voice') {
+      startVoiceDemo();
+    }
+  };
+
+  const demoResponses = [
+    "ありがとうございます。\n\n返却期限は何日間ですか？延長したい場合はどうすればいいですか？",
+    "なるほど。端末が故障した場合や紛失した場合の対応ルールも手順書に含めた方がよさそうですね。どう対応されていますか？",
+    "かなり全体像が見えてきました！\n\nそろそろ手順書の生成ができそうです。「生成」ボタンで確認してみてください。",
+  ];
+  let demoIdx = 0;
+
+  function sendMsg() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim(); if (!text) return;
+    const msgs = document.getElementById('chatMessages');
+    msgs.innerHTML += `<div class="msg user"><div class="avatar">👤</div><div class="bubble">${text.replace(/</g,'&lt;')}</div></div>`;
+    input.value = '';
+    setTimeout(() => {
+      const r = demoResponses[demoIdx % demoResponses.length]; demoIdx++;
+      msgs.innerHTML += `<div class="msg ai"><div class="avatar"><svg viewBox="0 0 80 80" fill="none"><defs><linearGradient id="hG2" x1="20" y1="8" x2="58" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#2D1B69"/><stop offset="1" stop-color="#6C63FF"/></linearGradient><linearGradient id="eG2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#4F46E5"/></linearGradient></defs><path d="M10 80c0-16 13-24 30-24s30 8 30 24" fill="#6C63FF"/><path d="M32 56l8 6 8-6" fill="#3730A3"/><rect x="36" y="48" width="8" height="9" rx="2" fill="#FFE4CC"/><ellipse cx="40" cy="33" rx="17" ry="19" fill="#FFE4CC"/><path d="M23 28c0-13 7.5-20 17-20s17 7 17 20c0 2-.5 3.5-1 5 .5-4-1-10-5-14-3-3-6.5-5-11-5s-8.5 2.5-11.5 6c-3.5 4.5-4.5 9-4.5 13-.5-1.5-1-3-1-5z" fill="url(#hG2)"/><path d="M28 18c3-4 7-6.5 13-7 1.5-.1 2.5 0 3.5.3-3 .5-6 2-8.5 4.5-2.5 2.5-4 5.5-5 9-.5-2-1.5-4.5-3-6.8z" fill="#8B7CF7" opacity=".35"/><path d="M23 33c-.5 4 0 7 1 10" stroke="url(#hG2)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M57 33c.5 4 0 7-1 10" stroke="url(#hG2)" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M28 27l8-2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><path d="M44 25l8 2" stroke="#2D1B69" stroke-width="1.8" stroke-linecap="round"/><ellipse cx="33" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="47" cy="33" rx="4" ry="4.5" fill="#fff"/><ellipse cx="33" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><ellipse cx="47" cy="33.5" rx="3" ry="3.5" fill="url(#eG2)"/><circle cx="33" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="47" cy="33" r="1.8" fill="#1a1a1a"/><circle cx="34.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="48.5" cy="31.5" r="1.2" fill="#fff"/><circle cx="32" cy="34.5" r=".6" fill="#fff" opacity=".7"/><circle cx="46" cy="34.5" r=".6" fill="#fff" opacity=".7"/><path d="M39 37.5c.5 1 1.2 1.8 2 1.5" stroke="#D4A574" stroke-width=".8" stroke-linecap="round" fill="none"/><path d="M36 42.5c1.5 2 6.5 2 8 0" stroke="#C47A5A" stroke-width="1.3" stroke-linecap="round" fill="none"/><path d="M19 30c0-12 9-22 21-22s21 10 21 22" stroke="#374151" stroke-width="2.5" fill="none"/><rect x="14" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="59" y="29" width="7" height="10" rx="3.5" fill="#374151"/><rect x="15" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><rect x="60" y="30" width="5" height="8" rx="2.5" fill="#4F46E5"/><path d="M14 36c-3 2-4 6-2 10" stroke="#374151" stroke-width="1.5" stroke-linecap="round" fill="none"/><circle cx="12" cy="47" r="2.5" fill="#374151"/><circle cx="12" cy="47" r="1.5" fill="#4F46E5"/><rect x="50" y="64" width="28" height="14" rx="7" fill="#4F46E5"/><text x="64" y="74" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="sans-serif">後輩AI</text></svg></div><div class="bubble">${r.replace(/\n/g,'<br>')}</div></div>`;
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 600);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function selExp(el) {
+    document.querySelectorAll('.exp-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function doExport() {
+    const c = `端末貸出・返却手順書\n\n1. 目的\n端末貸出・返却の手順統一\n\n2. 貸出手順\n1) 台帳で空き確認\n2) リーダーに申請\n3) 貸出票記入\n4) 承認\n5) 受取り\n\n3. 返却手順\n1) データ消去\n2) 報告\n3) 状態確認\n4) 台帳更新\n5) 格納\n\n※ Manual Studio で自動生成`;
+    const b = new Blob([c], {type:'text/plain;charset=utf-8'});
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a'); a.href=u; a.download='端末貸出手順書.txt'; a.click();
+    URL.revokeObjectURL(u);
+    showToast('✅ ダウンロードしました');
+  }
+</script>
+</body>
+</html>
